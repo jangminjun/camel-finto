@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/spring       http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <camelContext id="context-1f656b4c-bdcf-4df9-b265-e5326336a5f8" xmlns="http://camel.apache.org/schema/spring">
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled><constant>true</constant></handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>500</constant>
+            </setHeader>
+            <setBody>
+                <simple>${exception.message}</simple>
+            </setBody>
+        </onException>
+
+        <rest id="rest-for-openapi-document" path="/" enableCORS="true">
+            <get id="openapi.json" produces="application/json" uri="openapi.json">
+                <description>Gets the OpenAPI document for this service</description>
+                <route id="route-for-openapi-document">
+                    <setHeader id="setHeader-for-openapi-document" headerName="Exchange.CONTENT_TYPE">
+                        <constant>application/vnd.oai.openapi+json</constant>
+                    </setHeader>
+                    <setBody id="setBody-for-openapi-document">
+                        <constant>resource:classpath:openapi.json</constant>
+                    </setBody>
+                </route>
+            </get>
+        </rest>
+
+        <rest bindingMode="json" enableCORS="true" id="rest-21db5856-82fa-40c6-a2e4-18baff472a01" path="/rest/v1">
+            <get produces="application/json" uri="/vocabularies">
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="true" type="query"/>
+                <to uri="direct:rest1"/>
+            </get>
+            <get produces="application/json" uri="/search">
+                <param dataType="string" description="the term to search for e.g. &quot;cat*&quot;" name="query" required="true" type="query"/>
+                <param dataType="string" description="language of labels to match, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <param dataType="string" description="language of labels to return, e.g. &quot;en&quot; or &quot;fi&quot;" name="labellang" required="false" type="query"/>
+                <param dataType="string" description="vocabulary/vocabularies to limit search to, e.g. &quot;yso&quot; or &quot;yso allars&quot;" name="vocab" required="false" type="query"/>
+                <param dataType="string" description="limit search to concepts of the given type(s), e.g. &quot;skos:Concept&quot;." name="type" required="false" type="query"/>
+                <param dataType="string" description="limit search to concepts which have the given concept (specified by URI) as parent in their transitive broader hierarchy" name="parent" required="false" type="query"/>
+                <param dataType="string" description="limit search to concepts in the given group (specified by URI)" name="group" required="false" type="query"/>
+                <param dataType="integer" description="Maximum number of results to return. If not given, maxhits will default to 100. (default settable in config.ttl)" name="maxhits" required="false" type="query"/>
+                <param dataType="integer" description="offset where to start in ther esult set, useful for paging the result. If not given, defaults to 0." name="offset" required="false" type="query"/>
+                <param dataType="string" description="space-separated list of extra fields to include in the results. e.g. &quot;related&quot; or &quot;prefLabel&quot; or any other skos property." name="fields" required="false" type="query"/>
+                <param dataType="string" description="boolean flag to indicate that each concept should be returned only once, instead of returning all the different ways it could match (for example both via prefLabel and altLabel)." name="unique" required="false" type="query"/>
+                <to uri="direct:rest2"/>
+            </get>
+            <get produces="application/ld+json" uri="/label">
+                <param dataType="string" description="URI of the concept whose labels to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="search language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest3"/>
+            </get>
+            <get produces="application/rdf+xml,text/turtle,application/ld+json,application/json" uri="/data">
+                <param dataType="string" description="URI of the concept whose data to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="the MIME type of the serialization format, e.g. &quot;text/turtle&quot; or &quot;application/rdf+xml&quot;" name="format" required="false" type="query"/>
+                <to uri="direct:rest4"/>
+            </get>
+            <get produces="application/ld+json" uri="/types">
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="true" type="query"/>
+                <to uri="direct:rest5"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/">
+                <param dataType="string" description="The Skosmos vocabulary id e.g. stw or yso" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest6"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/types">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest7"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/topConcepts">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <param dataType="string" description="concept scheme whose top concepts to return. If not given, the default concept scheme of the vocabulary will be used." name="scheme" required="false" type="query"/>
+                <to uri="direct:rest8"/>
+            </get>
+            <get produces="application/rdf+xml,text/turtle,application/ld+json,application/json,application/marcxml+xml" uri="/{vocid}/data">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="The MIME type of the serialization format, e.g &quot;text/turtle&quot; or &quot;application/rdf+xml&quot;. If not specified, HTTP content negotiation (based on the Accept header) is used to determine a suitable serialization format from among the available ones." name="format" required="false" type="query"/>
+                <param dataType="string" description="URI of the desired concept. When no uri parameter is given, the whole vocabulary is returned instead." name="uri" required="false" type="query"/>
+                <param dataType="string" description="RDF language code when the requested resource for the MIME type is language specific, e.g. &quot;fi&quot; or &quot;en&quot;." name="lang" required="false" type="query"/>
+                <to uri="direct:rest9"/>
+            </get>
+            <get produces="application/json" uri="/{vocid}/search">
+                <description>Returns a list of search results. The search is performed as a case-insensitive pattern, where an asterisk (*) may be used as wildcard. E.g. "cat*" may return results such as "CATCH-22" and "categorization". If decoded into RDF, the result is a vocabulary fragment expressed as SKOS.</description>
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="the term to search for e.g. &quot;cat*&quot;" name="query" required="true" type="query"/>
+                <param dataType="string" description="language of labels to match, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <param dataType="string" description="limit search to concepts of the given type, e.g. &quot;skos:Concept&quot;; multiple types can be specified as a space-separated list" name="type" required="false" type="query"/>
+                <param dataType="string" description="limit search to concepts which have the given concept (specified by URI) as parent in their transitive broader hierarchy" name="parent" required="false" type="query"/>
+                <param dataType="string" description="limit search to concepts in the given group (specified by URI)" name="group" required="false" type="query"/>
+                <param dataType="integer" description="Maximum number of results to return. If not given, maxhits will default to 100. (default settable in config.ttl)" name="maxhits" required="false" type="query"/>
+                <param dataType="integer" description="offset where to start in ther esult set, useful for paging the result. If not given, defaults to 0." name="offset" required="false" type="query"/>
+                <param dataType="string" description="space-separated list of extra fields to include in the results. e.g. &quot;related&quot; or &quot;prefLabel&quot; or any other skos property." name="fields" required="false" type="query"/>
+                <param dataType="string" description="boolean flag to indicate that each concept should be returned only once, instead of returning all the different ways it could match (for example both via prefLabel and altLabel)." name="unique" required="false" type="query"/>
+                <to uri="direct:rest10"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/lookup">
+                <description>Returns the best matching concept(s) for the given label in JSON-LD format. In case the label matches several concepts with the same precedence, all of them are returned.</description>
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="the label to look for, e.g. &quot;cat&quot; or &quot;dog&quot;" name="label" required="true" type="query"/>
+                <param dataType="string" description="search language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest11"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/vocabularyStatistics">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest12"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/labelStatistics">
+                <description>Returns a list of label (skos:prefLabel, skos:altLabel and skos:hiddenLabel) counts in all the different languages.</description>
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest13"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/index/">
+                <description>Returns a list of the initial letters of labels (skos:prefLabel, skos:altLabel) in the given language, or the default language of the vocabulary. The special value "0-9" indicates the presence of labels starting with a number and the value "!*" indicates labels starting with a special character.</description>
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest14"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/index/{letter}">
+                <description>Returns a list of the concepes which have a label (skos:prefLabel or skos:altLabel) starting with the given letter in the given language, or the default language of the vocabulary. The special value "0-9" matches labels starting with a number and the value "!*" matches labels starting with a special character.</description>
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="an initial letter, or one of the special values &quot;0-9 or &quot;!*&quot;" name="letter" required="true" type="path"/>
+                <param dataType="string" description="language of labels, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest15"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/label">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose labels to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="search language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest16"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/broader">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose broader concept to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest17"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/broaderTransitive">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose broader transitive hierarchy to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest18"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/narrower">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose narrower concept to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest19"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/narrowerTransitive">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose narrower transitive hierarchy to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest20"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/related">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose related concept to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest21"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/children">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose narrower concepts to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest22"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/groups">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest23"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/new">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <param dataType="number" description="offset of the starting index" name="offset" required="false" type="query"/>
+                <param dataType="number" description="maximum number of concepts to return" name="limit" required="false" type="query"/>
+                <to uri="direct:rest24"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/modified">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <param dataType="number" description="offset of the starting index" name="offset" required="false" type="query"/>
+                <param dataType="number" description="maximum number of concepts to return" name="limit" required="false" type="query"/>
+                <to uri="direct:rest25"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/groupMembers">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest26"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/hierarchy">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose hierarchical context to return" name="uri" required="true" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest27"/>
+            </get>
+            <get produces="application/ld+json" uri="/{vocid}/mappings">
+                <param dataType="string" description="a Skosmos vocabulary identifier e.g. &quot;stw&quot; or &quot;yso&quot;" name="vocid" required="true" type="path"/>
+                <param dataType="string" description="URI of the concept whose hierarchical context to return" name="uri" required="true" type="query"/>
+                <param dataType="boolean" description="Indicates whether mappings to external vocabularies should be listed" name="external" required="false" type="query"/>
+                <param dataType="string" description="content language, e.g. &quot;en&quot; or &quot;fi&quot;" name="clang" required="false" type="query"/>
+                <param dataType="string" description="label language, e.g. &quot;en&quot; or &quot;fi&quot;" name="lang" required="false" type="query"/>
+                <to uri="direct:rest28"/>
+            </get>
+        </rest>
+
+        <route id="route-83f7e38b-3dda-4346-82c3-9ecf1aa33ae2">
+            <from id="from-0516ab82-f9d3-4406-9bf8-f59ba437cc60" uri="direct:rest1"/>
+            <to id="to-f9977918-ca02-4119-9273-fafcf6d7548e" uri="direct:501"/>
+        </route>
+        <route id="route-5b28080d-fe0a-4660-857d-0b3245a55cb1">
+            <from id="from-94b0c329-ff64-4aa9-b710-22a56317e039" uri="direct:rest2"/>
+            <to id="to-01546900-0894-470f-b45c-51c2e3659bec" uri="direct:501"/>
+        </route>
+        <route id="route-2c95825f-f442-4ba7-b18d-13208a3d6b53">
+            <from id="from-0b214d0d-0fc7-4289-9c25-12490cc7d883" uri="direct:rest3"/>
+            <to id="to-1b0e98f7-0981-431d-ad39-b1c2716afce9" uri="direct:501"/>
+        </route>
+        <route id="route-74c1dbf5-018e-4f85-b1d1-0fa14c713997">
+            <from id="from-0d7539ff-e0ad-4fbf-bd2f-07c2663fade8" uri="direct:rest4"/>
+            <to id="to-bd7de8c5-7a3d-4b54-94de-60924be1f0ec" uri="direct:501"/>
+        </route>
+        <route id="route-cefde02c-d3c7-43bb-bb20-57787553361c">
+            <from id="from-dd544254-6534-41b1-ae95-c3175d9e3ea7" uri="direct:rest5"/>
+            <to id="to-c8986125-43e7-4010-a6e5-b5ef72acf306" uri="direct:501"/>
+        </route>
+        <route id="route-76e7e7a0-69d8-4f98-a050-f13164858c43">
+            <from id="from-efb132b5-cadd-4bcd-b4a9-476205dff3d6" uri="direct:rest6"/>
+            <to id="to-05a9e097-ca61-46ec-a5a5-0137b106533d" uri="direct:501"/>
+        </route>
+        <route id="route-904edfa3-de65-4ba0-8990-f5d39c7ca85d">
+            <from id="from-2d345c9f-00c2-440e-bc73-0cfb763650d1" uri="direct:rest7"/>
+            <to id="to-773cbd10-3702-4893-80fd-32436197a059" uri="direct:501"/>
+        </route>
+        <route id="route-aa9d427f-4f5b-428f-b909-2e27d5d384fe">
+            <from id="from-8a749573-625e-4f9b-8139-0b97579c8183" uri="direct:rest8"/>
+            <to id="to-e37bc593-e772-4858-9697-e45165979332" uri="direct:501"/>
+        </route>
+        <route id="route-a3d07422-8a81-4028-8d02-ae5dc62a5c6f">
+            <from id="from-5ab9739e-47fc-47a2-a713-21e67109f0e2" uri="direct:rest9"/>
+            <to id="to-bd638431-d821-4b6a-961a-8be8e4aef8aa" uri="direct:501"/>
+        </route>
+        <route id="route-fde1a7aa-8a08-47f0-b6f4-266d12ba5841">
+            <from id="from-b2c3c728-28ab-4f62-af1c-00f40ea35475" uri="direct:rest10"/>
+            <to id="to-c54e2b75-f1a6-4ef3-9a6f-9d47cf0b2f51" uri="direct:501"/>
+        </route>
+        <route id="route-edba7b9c-944e-4aa2-ac61-fd4c3f6453fd">
+            <from id="from-1e2e842d-fa82-49b2-b047-1e60f4dc96df" uri="direct:rest11"/>
+            <to id="to-14e990f8-8f29-46d1-8f38-0c44e4f282c1" uri="direct:501"/>
+        </route>
+        <route id="route-087dddef-f3a0-4624-b79c-e446a691b12c">
+            <from id="from-d893d734-e87b-4554-ac22-c77744e8dbe9" uri="direct:rest12"/>
+            <to id="to-136d2f17-1f83-4678-80a3-010c16ad980f" uri="direct:501"/>
+        </route>
+        <route id="route-e18fe931-091b-474f-8c29-218f09990dbc">
+            <from id="from-038ac923-41dd-42d0-b2dc-f50e81cc6902" uri="direct:rest13"/>
+            <to id="to-f66efdc1-d988-4670-808b-9afdfacc5cba" uri="direct:501"/>
+        </route>
+        <route id="route-0c70817f-709e-4038-8079-982aadf80c25">
+            <from id="from-fe50ce6e-67fb-4bef-8483-9f2a48897f87" uri="direct:rest14"/>
+            <to id="to-e423264e-d864-455f-8e67-40de3e5bf9c2" uri="direct:501"/>
+        </route>
+        <route id="route-cf17b6bf-cc4f-4278-90d4-d3acd121231e">
+            <from id="from-bf9e2c81-46a4-4442-a5b7-3d69e649c83c" uri="direct:rest15"/>
+            <to id="to-18b442cd-dd31-4ae6-b466-97cdc8d6aeb6" uri="direct:501"/>
+        </route>
+        <route id="route-28abe5e6-68df-4c3d-a5a6-6c8e963b0177">
+            <from id="from-38e9b78a-553f-47f6-9bae-4675e655ddbd" uri="direct:rest16"/>
+            <to id="to-2015f442-37ee-47c9-9c4f-3b7627cbddbc" uri="direct:501"/>
+        </route>
+        <route id="route-a011ea69-3aaa-4dfe-9631-77a6b54e548c">
+            <from id="from-b6c55718-0289-49dc-a834-d2b13936994c" uri="direct:rest17"/>
+            <to id="to-83787da0-6ca8-4eb6-9ca3-b0fcae9c6207" uri="direct:501"/>
+        </route>
+        <route id="route-0fd7ac48-fede-4a51-ad93-1f163dea77ff">
+            <from id="from-6e350ffb-1386-41f2-82f1-ca8a6011f5d4" uri="direct:rest18"/>
+            <to id="to-519f2f46-7fe0-4f4f-817b-22502a69d9f4" uri="direct:501"/>
+        </route>
+        <route id="route-bc004d39-68ba-4f64-a2be-01bdc5d06c49">
+            <from id="from-0c8bb1ce-b4a9-4885-bfad-a744c7938a68" uri="direct:rest19"/>
+            <to id="to-8ad3ae06-430f-412b-9984-0a0d117a4b9b" uri="direct:501"/>
+        </route>
+        <route id="route-b9d42ecf-7f83-4562-a9f9-7c9a05e03691">
+            <from id="from-80774c66-00d2-4215-b48b-cff83deaafe6" uri="direct:rest20"/>
+            <to id="to-d9b4f4bf-8aaa-4c3a-988d-540bcd4b2d0c" uri="direct:501"/>
+        </route>
+        <route id="route-014eeff4-5674-4593-acfa-519db057afee">
+            <from id="from-d52342c8-2abd-4b65-8f2d-14e217f1cfce" uri="direct:rest21"/>
+            <to id="to-0ff93617-e17e-41d4-8fc4-5bc37a1c6ce0" uri="direct:501"/>
+        </route>
+        <route id="route-969af4a3-ece2-46f4-b4a4-55bc437c634b">
+            <from id="from-9e850f1a-1dbc-49e5-87dc-09fdc431062b" uri="direct:rest22"/>
+            <to id="to-98f00c1c-2213-43ce-be75-b7d22c57fd2c" uri="direct:501"/>
+        </route>
+        <route id="route-982e15ad-fc17-4563-b9e6-d2895b96e010">
+            <from id="from-fb0293a7-2072-4979-b264-0469d2de80ba" uri="direct:rest23"/>
+            <to id="to-a8c12fb6-c7cc-4b9d-8029-0985bf4f8850" uri="direct:501"/>
+        </route>
+        <route id="route-349cb67f-14ee-44ba-883e-2cacb71e7c50">
+            <from id="from-48512e69-a2b7-468f-a4af-b093de97096a" uri="direct:rest24"/>
+            <to id="to-11ec7baf-0ebb-4bfd-bcc7-407bc478ffdd" uri="direct:501"/>
+        </route>
+        <route id="route-a35596f1-2bcc-4033-af8d-90dce8eda8fa">
+            <from id="from-a30f646b-025a-4fb0-becc-43ac554060e2" uri="direct:rest25"/>
+            <to id="to-397591eb-e2fe-47f6-b156-75a5d4f2c422" uri="direct:501"/>
+        </route>
+        <route id="route-959d78a6-cedb-4b42-a1fb-078fec132983">
+            <from id="from-ec30e66c-e08b-41d1-be31-5695dbf580a0" uri="direct:rest26"/>
+            <to id="to-03ed015c-2fe4-49d6-a95e-f01849e6df3c" uri="direct:501"/>
+        </route>
+        <route id="route-19fce2fc-7e61-4736-847b-bab8e12d4fcf">
+            <from id="from-d33a97cd-15a1-48c4-bff2-202545289443" uri="direct:rest27"/>
+            <to id="to-a599053f-5579-4aad-a0d2-780bfd135b63" uri="direct:501"/>
+        </route>
+        <route id="route-ed28acb1-7bc9-444f-9f62-e03c3ceb8f95">
+            <from id="from-914bd568-ad1a-4e82-805e-b891ce5e9088" uri="direct:rest28"/>
+            <to id="to-d30b2348-62fa-4f5e-b9f4-8fe075011e30" uri="direct:501"/>
+        </route>
+
+        <route id="route-for-unimplemented-operations">
+            <from id="from-for-unimplemented-operations-route" uri="direct:501"/>
+            <log id="log-for-unimplemented-operations-route" message="API operation not yet implemented: ${headers.CamelHttpMethod} ${headers.CamelHttpPath}"/>
+            <setHeader id="setHeader-for-unimplemented-operations-route" headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>501</constant>
+            </setHeader>
+            <setBody id="setBody-for-unimplemented-operations-route">
+                <simple>API operation not implemented: ${headers.CamelHttpMethod} ${headers.CamelHttpPath}</simple>
+            </setBody>
+        </route>
+
+    </camelContext>
+</beans>
